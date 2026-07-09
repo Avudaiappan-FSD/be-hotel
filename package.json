@@ -1,0 +1,19 @@
+{
+  "name": "hotelmanagement-be",
+  "version": "1.0.0",
+  "description": "This is a simple hotel management system that allows users to manage hotel bookings, rooms, and customer information. The system provides functionalities for adding new bookings, checking room availability, and managing customer details.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Avudaiappan-FSD/be-hotel.git"
+  },
+  "author": "vishal",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Avudaiappan-FSD/be-hotel/issues"
+  },
+  "homepage": "https://github.com/Avudaiappan-FSD/be-hotel#readme"
+}
