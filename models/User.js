@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const customerschema = new mongoose.Schema({
+const userschema = new mongoose.Schema({
     name:
     {
         type: String,
@@ -19,7 +19,9 @@ const customerschema = new mongoose.Schema({
     role:
     {
         type: String,
-        required: true
+        required: true,
+        enum: ['customer', 'admin'],
+        default: 'customer'
     },
     createdAt:
     {
