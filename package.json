@@ -4,7 +4,10 @@
   "description": "This is a simple hotel management system that allows users to manage hotel bookings, rooms, and customer information. The system provides functionalities for adding new bookings, checking room availability, and managing customer details.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+
   },
   "repository": {
     "type": "git",
@@ -15,5 +18,18 @@
   "bugs": {
     "url": "https://github.com/Avudaiappan-FSD/be-hotel/issues"
   },
-  "homepage": "https://github.com/Avudaiappan-FSD/be-hotel#readme"
+  "homepage": "https://github.com/Avudaiappan-FSD/be-hotel#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.4",
+    "morgan": "^1.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
