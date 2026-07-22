@@ -32,8 +32,8 @@ const authcontroller = {
             if (!isMatch) {
                 return res.status(401).json({ message: "Invalid credentials" });
             }
-            const token = jwt.sign({ id: user._id, role: user.role },JWT_SECRET);
-            res.cookie('token', token, { httpOnly: true });
+            const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET);
+            res.cookie('token', token, { httpOnly: true }); 
             res.status(200).json({ message: "User logged in successfully" });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -43,6 +43,7 @@ const authcontroller = {
         try {
             res.clearCookie('token');
             res.status(200).json({ message: "User logged out successfully" });
+
         } catch (error) {
             res.status(500).json({ message: error.message });
         }
@@ -50,7 +51,7 @@ const authcontroller = {
     me: async (req, res) => {
         try {
             const { userId } = req;
-            const user = await User.findById(userId).select('password, ');
+            const user = await User.findById(userId).select(' -__v -createdAt -updatedAt');
             res.status(200).json({ user });
         } catch (error) {
             res.status(500).json({ message: error.message });

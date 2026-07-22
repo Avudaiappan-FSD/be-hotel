@@ -20,7 +20,7 @@ const userschema = new mongoose.Schema({
     {
         type: String,
         required: true,
-        enum: ['customer', 'admin'],
+        enum: ['customer', 'admin', 'receptionist'],
         default: 'customer'
     },
     createdAt:
