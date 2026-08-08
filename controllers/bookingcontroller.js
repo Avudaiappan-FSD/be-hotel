@@ -53,7 +53,7 @@ const bookingcontroller = {
     },
     getmybookings: async (req, res) => {
         try {
-            const userId = req.user.id;
+            const userId = req.userId;
             const bookings = await booking.find({ user: userId }).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
             res.status(200).json(bookings);
         } catch (error) {
@@ -71,18 +71,20 @@ const bookingcontroller = {
     },
     getBookingById: async (req, res) => {
         try {
-            const booking = await booking.findById(req.params.id).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
-            if (!booking) {
+            const bookingId = req.params.id;
+            const Booking = await booking.findById(bookingId).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
+            if (!Booking) {
                 return res.status(404).json({ message: 'Booking not found' });
             }
-            res.status(200).json(booking);
+            res.status(200).json(Booking);
         } catch (error) {
             res.status(500).json({ message: error.message });
         }
     },
     updateBooking: async (req, res) => {
         try {
-            const updatedBooking = await booking.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
+            const bookingId = req.params.id;
+            const updatedBooking = await booking.findByIdAndUpdate(bookingId, req.body, { new: true }).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
             if (!updatedBooking) {
                 return res.status(404).json({ message: 'Booking not found' });
             }
@@ -93,7 +95,8 @@ const bookingcontroller = {
     },
     deleteBooking: async (req, res) => {
         try {
-            const deletedBooking = await booking.findByIdAndDelete(req.params.id);
+            const bookingId = req.params.id;
+            const deletedBooking = await booking.findByIdAndDelete(bookingId);
             if (!deletedBooking) {
                 return res.status(404).json({ message: 'Booking not found' });
             }
