@@ -1,5 +1,6 @@
 const payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const user = require('../models/User');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 

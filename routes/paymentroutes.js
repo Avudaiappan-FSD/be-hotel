@@ -2,7 +2,7 @@ const express = require('express');
 const paymentrouter = express.Router();
 const auth = require('../middleware/auth');
 const paymentController = require('../controllers/paymentcontroller');
-const { recompileSchema } = require('../models/Payment');
+
 
 
 paymentrouter.post('/create-order', auth.checkAuth,auth.allowroles(['customer']), paymentController.createOrder);

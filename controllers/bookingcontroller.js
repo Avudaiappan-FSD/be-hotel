@@ -53,8 +53,9 @@ const bookingcontroller = {
     },
     getmybookings: async (req, res) => {
         try {
-            const userId = req.userId;
-            const bookings = await booking.find({ user: userId }).populate('user', 'name email').populate('room', 'roomnumber roomtype price');
+            const userId = req.params.userId;
+            const bookings = await booking.find({ user: userId }).populate('user', 'name email')
+            .populate('room', 'roomnumber roomtype price');
             res.status(200).json(bookings);
         } catch (error) {
             res.status(500).json({ message: error.message });
