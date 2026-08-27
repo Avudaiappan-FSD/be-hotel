@@ -3,12 +3,12 @@ const Room = require('../models/Room');
 const roomController = {
     createroom: async (req, res) => {
         try {
-            const { roomnumber, roomtype, price, capacity, description } = req.body;
+            const { roomnumber, roomtype, price, capacity, description, location,isavailable } = req.body;
             const existingRoom = await Room.findOne({ roomnumber: req.body.roomnumber });
             if (existingRoom) {
                 return res.status(400).json({ message: "Room already exists" });
             }
-            const newRoom = new Room({ roomnumber, roomtype, price, capacity, description });
+            const newRoom = new Room({ roomnumber, roomtype, price, capacity, description, location,isavailable });
             await newRoom.save();
             res.status(201).json({ message: "Room created successfully" });
         } catch (error) {
@@ -37,7 +37,7 @@ const roomController = {
     },
     updateroom: async (req, res) => {
         try {
-            const { roomnumber, roomtype, price, capacity, description } = req.body;
+            const { roomnumber, roomtype, price, capacity, description, location } = req.body;
             const room = await Room.findById(req.params.id);
             if (!room) {
                 return res.status(404).json({ message: "Room not found" });
@@ -47,6 +47,7 @@ const roomController = {
             room.price = price;
             room.capacity = capacity;
             room.description = description;
+            room.location = location;
             await room.save();
             res.status(200).json({ message: "Room updated successfully" });
         } catch (error) {
@@ -87,6 +88,18 @@ const roomController = {
                 searchCriteria.roomtype = roomtype;
             }
             const rooms = await Room.find(searchCriteria);
+            res.status(200).json(rooms);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    getroombylocation: async (req, res) => {
+        try {
+            const { location } = req.params;
+            const rooms = await Room.find({ location: location });
+            if (!rooms || rooms.length === 0) {
+                return res.status(404).json({ message: "No rooms found for the specified location" });
+            }
             res.status(200).json(rooms);
         } catch (error) {
             res.status(500).json({ error: error.message });

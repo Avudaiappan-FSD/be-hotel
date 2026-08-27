@@ -20,6 +20,14 @@ const roomSchema = new mongoose.Schema({
     description: {
         type: String,
         required: true,
+    },
+    location: {
+        type: String,
+        required: true,
+    },
+    isavailable:{
+        type:Boolean,
+        default:true
     }
 });
 

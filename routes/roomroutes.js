@@ -11,5 +11,6 @@ roomRouter.post('/search', auth.checkAuth, auth.allowroles(['admin', 'customer']
 roomRouter.get('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.getroombyid);
 roomRouter.put('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.updateroom);
 roomRouter.delete('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.deleteroom);
+roomRouter.get('/rooms/location/:location', auth.checkAuth, auth.allowroles(['customer','admin', 'customer']), roomController.getroombylocation);
 
 module.exports = roomRouter;
