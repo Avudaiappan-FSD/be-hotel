@@ -160,3 +160,4 @@ const paymentcontroller = {
     },
 
 }
+module.exports = paymentcontroller;

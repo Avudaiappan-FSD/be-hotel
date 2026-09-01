@@ -7,6 +7,7 @@ const authrouter = require('./routes/Authroutes');
 const userRouter = require('./routes/Userroutes');
 const roomRouter = require('./routes/roomroutes');
 const bookingrouter = require('./routes/bookingroutes');
+// const paymentrouter = require('./routes/paymentroutes');
 
 
 app.use(express.json());
@@ -21,6 +22,7 @@ app.use('/api/v1/auth', authrouter);
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/rooms', roomRouter);
 app.use('/api/v1/book',bookingrouter);
+// app.use('/api/v1/payment',paymentrouter);
 
 
 module.exports = app;
