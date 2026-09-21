@@ -5,7 +5,7 @@ const user = require('../models/User');
 const bookingcontroller = {
     createBooking: async (req, res) => {
         try {
-            const { user:userId, room:roomId, checkin, checkout, numberofguests, totalprice } = req.body;
+            const { user: userId, room: roomId, checkin, checkout, numberofguests, totalprice } = req.body;
             const checkIn = new Date(checkin);
             const checkOut = new Date(checkout);
             const roomalrdybooked = await booking.findOne({ room: roomId, checkin: { $lt: checkOut }, checkout: { $gt: checkIn } });
@@ -30,8 +30,19 @@ const bookingcontroller = {
             }
             const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
             const totalPriceCalculated = nights * totalprice;
-            const roomDetails = await room.findById(roomId);
+            console.log("Room id received:", roomId);
+            console.log("Room id type:", typeof roomId);
+
+            const roomDetails = await room.findById(roomId).lean();
+            console.log("Room details from db:", roomDetails);
+
             const userDetails = await user.findById(userId);
+            if (!roomDetails) {
+                return res.status(404).json({ message: "Room not found" })
+            }
+            if (!userDetails) {
+                return res.status(404).json({ message: "User not found" })
+            }
             const newbooking = await booking.create({
                 user: userDetails._id,
                 room: roomId,
@@ -42,10 +53,10 @@ const bookingcontroller = {
                 totalprice: totalPriceCalculated
             });
             const populatedBooking = await booking.findById(newbooking._id)
-            .populate('user', 'name email')
-            .populate('room', 'roomnumber roomtype price');  
+                .populate('user', 'name email')
+                .populate('room', 'roomnumber roomtype price');
 
-            res.status(201).json({success: true, message: "Booking created successfully", booking: populatedBooking });
+            res.status(201).json({ success: true, message: "Booking created successfully", booking: populatedBooking });
         } catch (error) {
             res.status(400).json({ message: error.message });
         };
@@ -55,7 +66,7 @@ const bookingcontroller = {
         try {
             const userId = req.params.userId;
             const bookings = await booking.find({ user: userId }).populate('user', 'name email')
-            .populate('room', 'roomnumber roomtype price');
+                .populate('room', 'roomnumber roomtype price');
             res.status(200).json(bookings);
         } catch (error) {
             res.status(500).json({ message: error.message });
