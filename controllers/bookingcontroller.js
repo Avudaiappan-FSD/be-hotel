@@ -4,8 +4,8 @@ const user = require('../models/User');
 
 const bookingcontroller = {
     createBooking: async (req, res) => {
-        try {        
-            const { user: userId, room: roomId, checkin, checkout, numberofguests, totalprice } = req.body;
+        try {
+            const { userId, roomId, checkin, checkout, numberofguests, totalprice } = req.body;
             const checkIn = new Date(checkin);
             const checkOut = new Date(checkout);
             const roomalrdybooked = await booking.findOne({ room: roomId, checkin: { $lt: checkOut }, checkout: { $gt: checkIn } });
@@ -31,7 +31,12 @@ const bookingcontroller = {
             const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
             const totalPriceCalculated = nights * totalprice;
             const roomDetails = await room.findById(roomId);
+
+            // console.log("Roomdetails:", roomDetails);
             const userDetails = await user.findById(userId);
+            // console.log("userdetails:", userDetails);
+
+
             if (!roomDetails) {
                 return res.status(404).json({ message: "Room not found" })
             }
