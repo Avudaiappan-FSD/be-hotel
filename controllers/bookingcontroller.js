@@ -20,9 +20,9 @@ const bookingcontroller = {
             }
             const overlapping = await booking.findOne({
                 room: roomId,
-                bookingstatus: { $ne: 'cancelled' },
+                bookingstatus: { $in: ['pending', 'confirmed'] },
                 $or: [
-                    { checkin: { $lte: checkIn }, checkout: { $gte: checkOut } }
+                    { checkin: { $lt: checkOut }, checkout: { $gt: checkIn } }
                 ]
             });
             if (overlapping) {
@@ -61,6 +61,31 @@ const bookingcontroller = {
             res.status(400).json({ message: error.message });
         };
 
+    },
+    checkRoomAvailability: async (req, res) => {
+        try{
+            const {roomId, checkin, checkout} = req.query;
+            if(!roomId || !checkin || !checkout){
+                return res.status(400).json({message: "Please provide roomId, checkin and checkout dates"});
+            }
+            const checkInDate = new Date(checkin);
+            const checkOutDate = new Date(checkout);
+            const roomalrdybooked = await booking.findOne({ room: roomId, checkin: { $lt: checkOutDate }, checkout: { $gt: checkInDate } });
+            if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime()) || checkInDate >= checkOutDate) {
+                return res.status(400).json({ message: "Invalid date format" });
+            }
+            const overlapping = await booking.findOne({
+                room: roomId,
+                bookingstatus: { $ne: 'cancelled' },
+                checkin:{ $lt: checkOutDate },
+                checkout:{ $gt: checkInDate }
+            });
+            return res. status(200).json({available:! overlapping, message: overlapping ? "Room is not available for the selected dates" : "Room is available for the selected dates"});
+
+        } catch (error) {
+            return res.status(400).json({ message: error.message });
+
+        }
     },
     getmybookings: async (req, res) => {
         try {
