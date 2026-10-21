@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
-
+const Room = require("../models/Room")
 const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
@@ -13,93 +13,122 @@ const razorpay = new Razorpay({
 
 
 const paymentController = {
+
     createOrder: async (req, res) => {
         try {
-            const { bookingId } = req.body;
+            const {
+                roomId,
+                checkin,
+                checkout,
+                numberofguests
+            } = req.body;
 
-            if (!bookingId) {
+            // Validate required fields
+            if (!roomId || !checkin || !checkout || !numberofguests) {
                 return res.status(400).json({
-                    message: "Booking ID is required",
+                    message: "Room, check-in, check-out and guests are required"
                 });
             }
 
-            const booking = await Booking.findById(bookingId);
+            const checkInDate = new Date(checkin);
+            const checkOutDate = new Date(checkout);
+            const guests = Number(numberofguests);
 
-            if (!booking) {
+            if (
+                Number.isNaN(checkInDate.getTime()) ||
+                Number.isNaN(checkOutDate.getTime()) ||
+                checkInDate >= checkOutDate ||
+                checkInDate < new Date(new Date().setHours(0, 0, 0, 0)) ||
+                !Number.isInteger(guests) ||
+                guests < 1
+            ) {
+                return res.status(400).json({
+                    message: "Invalid booking dates or guest count"
+                });
+            }
+
+            // Find room
+            const roomDetails = await Room.findById(roomId);
+
+            if (!roomDetails) {
                 return res.status(404).json({
-                    message: "Booking not found",
+                    message: "Room not found"
                 });
             }
 
-            if (booking.user.toString() !== req.userId.toString()) {
-                return res.status(403).json({
-                    message: "You are not allowed to pay for this booking",
-                });
-            }
-
-            if (booking.paymentstatus === "paid") {
-                return res.status(400).json({
-                    message: "This booking is already paid",
-                });
-            }
-
-            const amount = Number(booking.totalprice);
-
-            if (!amount || amount <= 0) {
-                return res.status(400).json({
-                    message: "Invalid booking amount",
-                });
-            }
-
-            const existingPayment = await Payment.findOne({
-                booking: booking._id,
-                paymentstatus: "completed",
+            // Check existing confirmed bookings for overlapping dates
+            const overlappingBooking = await Booking.findOne({
+                room: roomId,
+                bookingstatus: "confirmed",
+                checkin: { $lt: checkOutDate },
+                checkout: { $gt: checkInDate }
             });
 
-            if (existingPayment) {
-                return res.status(400).json({
-                    message: "Payment already completed",
+            if (overlappingBooking) {
+                return res.status(409).json({
+                    message: "This room is already booked for the selected dates"
                 });
             }
 
+            // Calculate total price on the backend
+            const nights = Math.ceil(
+                (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)
+            );
+
+            const pricePerNight = Number(roomDetails.price);
+            const totalAmount = nights * pricePerNight;
+
+            if (
+                !Number.isFinite(pricePerNight) ||
+                pricePerNight <= 0 ||
+                !Number.isFinite(totalAmount) ||
+                totalAmount <= 0
+            ) {
+                return res.status(400).json({
+                    message: "Invalid room price"
+                });
+            }
+
+            // Create Razorpay order only. Do not create a booking yet.
             const order = await razorpay.orders.create({
-                amount: Math.round(amount * 100),
+                amount: Math.round(totalAmount * 100),
                 currency: "INR",
-                receipt: `booking_${booking._id}`,
-            });
-
-            const payment = await Payment.create({
-                booking: booking._id,
-                user: req.userId,
-                amount,
-                paymentstatus: "pending",
-                razorpayorderid: order.id,
-                paymentmethod: "razorpay",
+                receipt: `room_${roomId}_${Date.now()}`,
+                notes: {
+                    userId: req.userId.toString(),
+                    roomId: roomId.toString(),
+                    checkin: checkInDate.toISOString(),
+                    checkout: checkOutDate.toISOString(),
+                    numberofguests: String(guests),
+                    totalprice: String(totalAmount)
+                }
             });
 
             return res.status(201).json({
-                message: "Order created successfully",
+                message: "Payment order created",
                 orderId: order.id,
                 amount: order.amount,
                 currency: order.currency,
-                paymentId: payment._id,
-                keyId: process.env.RAZORPAY_KEY_ID,
+                keyId: razorpaykeyid
             });
+
         } catch (error) {
             console.error("Create order error:", error);
 
             return res.status(500).json({
-                message: "Failed to create payment order",
+                message: "Failed to create payment order"
             });
         }
     },
 
     verifyPayment: async (req, res) => {
+        let createdBookingId = null;
+
         try {
             const {
                 razorpay_order_id,
                 razorpay_payment_id,
-                razorpay_signature,
+                razorpay_signature
             } = req.body;
 
             if (
@@ -108,71 +137,222 @@ const paymentController = {
                 !razorpay_signature
             ) {
                 return res.status(400).json({
-                    message: "Payment details are required",
+                    message: "Payment details are required"
                 });
             }
 
-            const payment = await Payment.findOne({
-                razorpayorderid: razorpay_order_id,
+            // 1. Check if this order was already processed
+            const existingPayment = await Payment.findOne({
+                razorpayorderid: razorpay_order_id
             });
 
-            if (!payment) {
-                return res.status(404).json({
-                    message: "Payment record not found",
-                });
-            }
+            if (existingPayment) {
+                if (
+                    existingPayment.user.toString() ===
+                    req.userId.toString()
+                ) {
+                    return res.status(200).json({
+                        success: true,
+                        message: "Payment already processed",
+                        booking: existingPayment.booking,
+                        payment: existingPayment
+                    });
+                }
 
-            if (payment.user.toString() !== req.userId.toString()) {
                 return res.status(403).json({
-                    message: "You are not allowed to verify this payment",
+                    message: "You are not allowed to verify this payment"
                 });
             }
 
-            if (payment.paymentstatus === "completed") {
-                return res.status(200).json({
-                    message: "Payment already verified",
-                    payment,
+            // 2. Fetch order from Razorpay
+            const order = await razorpay.orders.fetch(
+                razorpay_order_id
+            );
+
+            if (!order) {
+                return res.status(404).json({
+                    message: "Razorpay order not found"
                 });
             }
 
+            // 3. Verify signature using the configured secret
             const expectedSignature = crypto
-                .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-                .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+                .createHmac("sha256", razorpaykeysecret)
+                .update(
+                    `${razorpay_order_id}|${razorpay_payment_id}`
+                )
                 .digest("hex");
 
-            if (expectedSignature !== razorpay_signature) {
-                payment.paymentstatus = "failed";
-                await payment.save();
+            const expectedBuffer = Buffer.from(
+                expectedSignature,
+                "hex"
+            );
 
-                await Booking.findByIdAndUpdate(payment.booking, {
-                    paymentstatus: "failed",
-                });
+            const receivedBuffer = Buffer.from(
+                razorpay_signature,
+                "hex"
+            );
 
+            if (
+                expectedBuffer.length !== receivedBuffer.length ||
+                !crypto.timingSafeEqual(
+                    expectedBuffer,
+                    receivedBuffer
+                )
+            ) {
                 return res.status(400).json({
-                    message: "Invalid payment signature",
+                    message: "Invalid payment signature"
                 });
             }
 
-            payment.razorpaypaymentid = razorpay_payment_id;
-            payment.razorpaysignature = razorpay_signature;
-            payment.paymentstatus = "completed";
-            payment.paidat = new Date();
+            // 4. Confirm the Razorpay order belongs to this user
+            const notes = order.notes || {};
 
-            await payment.save();
+            if (String(notes.userId) !== String(req.userId)) {
+                return res.status(403).json({
+                    message: "You are not allowed to verify this payment"
+                });
+            }
 
-            await Booking.findByIdAndUpdate(payment.booking, {
-                paymentstatus: "paid",
+            // 5. Fetch actual payment details from Razorpay
+            const razorpayPayment =
+                await razorpay.payments.fetch(
+                    razorpay_payment_id
+                );
+
+            if (
+                razorpayPayment.order_id !== razorpay_order_id ||
+                razorpayPayment.status !== "captured" ||
+                order.status !== "paid" ||
+                razorpayPayment.amount !== order.amount ||
+                razorpayPayment.currency !== order.currency
+            ) {
+                return res.status(400).json({
+                    message: "Payment is not captured or details do not match"
+                });
+            }
+
+            // 6. Read booking details saved in createOrder notes
+            const {
+                roomId,
+                checkin,
+                checkout,
+                numberofguests,
+                totalprice
+            } = notes;
+
+            if (
+                !roomId ||
+                !checkin ||
+                !checkout ||
+                !numberofguests ||
+                !totalprice
+            ) {
+                return res.status(400).json({
+                    message: "Booking details are missing from the order"
+                });
+            }
+
+            const checkInDate = new Date(checkin);
+            const checkOutDate = new Date(checkout);
+            const guests = Number(numberofguests);
+            const amount = Number(totalprice);
+
+            if (
+                Number.isNaN(checkInDate.getTime()) ||
+                Number.isNaN(checkOutDate.getTime()) ||
+                checkInDate >= checkOutDate ||
+                !Number.isInteger(guests) ||
+                guests < 1 ||
+                !Number.isFinite(amount) ||
+                amount <= 0 ||
+                Math.round(amount * 100) !== order.amount
+            ) {
+                return res.status(400).json({
+                    message: "Invalid booking details or amount"
+                });
+            }
+
+            // 7. Find room
+            const roomDetails = await Room.findById(roomId);
+
+            if (!roomDetails) {
+                return res.status(404).json({
+                    message: "Room not found"
+                });
+            }
+
+            // 8. Recheck availability before confirming booking
+            const overlappingBooking = await Booking.findOne({
+                room: roomDetails._id,
+                bookingstatus: {
+                    $in: ["pending", "confirmed"]
+                },
+                checkin: { $lt: checkOutDate },
+                checkout: { $gt: checkInDate }
+            });
+
+            if (overlappingBooking) {
+                return res.status(409).json({
+                    message:
+                        "Payment was received, but the room is no longer available. Please contact support for a refund."
+                });
+            }
+
+            // 9. Create booking only after verified payment
+            const newBooking = await Booking.create({
+                user: req.userId,
+                room: roomDetails._id,
+                roomnumber: roomDetails.roomnumber,
+                checkin: checkInDate,
+                checkout: checkOutDate,
+                numberofguests: guests,
+                totalprice: amount,
+                bookingstatus: "confirmed",
+                paymentstatus: "paid"
+            });
+
+            createdBookingId = newBooking._id;
+
+            // 10. Save payment linked to the newly created booking
+            const newPayment = await Payment.create({
+                booking: newBooking._id,
+                user: req.userId,
+                amount: amount,
+                paymentstatus: "completed",
+                razorpayorderid: razorpay_order_id,
+                razorpaypaymentid: razorpay_payment_id,
+                razorpaysignature: razorpay_signature,
+                paymentmethod: "razorpay",
+                paidat: new Date()
             });
 
             return res.status(200).json({
-                message: "Payment verified successfully",
-                payment,
+                success: true,
+                message: "Payment successful and booking confirmed",
+                booking: newBooking,
+                payment: newPayment
             });
+
         } catch (error) {
             console.error("Verify payment error:", error);
 
+            // Cleanup booking if saving its payment record failed
+            if (createdBookingId) {
+                try {
+                    await Booking.findByIdAndDelete(
+                        createdBookingId
+                    );
+                } catch (cleanupError) {
+                    console.error(
+                        "Booking cleanup error:",
+                        cleanupError
+                    );
+                }
+            }
+
             return res.status(500).json({
-                message: "Failed to verify payment",
+                message: "Unable to complete booking verification"
             });
         }
     },
