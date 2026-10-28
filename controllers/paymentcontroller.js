@@ -108,7 +108,7 @@ const paymentController = {
                 });
             }
             // Create Razorpay order only. Do not create a booking yet.
-            const order = await razorpay.orders.create({
+            const order = await razorpayClient.orders.create({
                 amount: Math.round(totalAmount * 100),
                 currency: "INR",
                 receipt: `room_${roomId}_${Date.now()}`,
