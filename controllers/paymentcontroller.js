@@ -6,11 +6,22 @@ const Booking = require("../models/Booking");
 const User = require("../models/User");
 const { razorpaykeyid, razorpaykeysecret } = require("../utils/config");
 
-const razorpay = new Razorpay({
-    key_id: razorpaykeyid,
-    key_secret: razorpaykeysecret,
-});
+let razorpay = null;
 
+const getRazorpay = () => {
+    if (!razorpaykeyid || !razorpaykeysecret) {
+        return null;
+    }
+
+    if (!razorpay) {
+        razorpay = new Razorpay({
+            key_id: razorpaykeyid,
+            key_secret: razorpaykeysecret,
+        });
+    }
+
+    return razorpay;
+};
 
 const paymentController = {
 
@@ -89,6 +100,13 @@ const paymentController = {
                 });
             }
 
+            const razorpayClient = getRazorpay();
+
+            if (!razorpayClient) {
+                return res.status(503).json({
+                    message: "Razorpay keys are not configured yet",
+                });
+            }
             // Create Razorpay order only. Do not create a booking yet.
             const order = await razorpay.orders.create({
                 amount: Math.round(totalAmount * 100),
