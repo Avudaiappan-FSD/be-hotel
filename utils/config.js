@@ -10,6 +10,6 @@ module.exports = {
     PORT,
     JWT_SECRET,
     razorpaykeyid,
-    razorpaykeysecret,
+    razorpaykeyid,
 
 };
