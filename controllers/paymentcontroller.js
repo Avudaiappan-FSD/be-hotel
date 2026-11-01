@@ -143,6 +143,13 @@ const paymentController = {
         let createdBookingId = null;
 
         try {
+            const razorpayClient = getRazorpay();
+
+            if (!razorpayClient) {
+                return res.status(503).json({
+                    message: "Razorpay keys are not configured yet",
+                });
+            }
             const {
                 razorpay_order_id,
                 razorpay_payment_id,
@@ -183,7 +190,7 @@ const paymentController = {
             }
 
             // 2. Fetch order from Razorpay
-            const order = await razorpay.orders.fetch(
+            const order = await razorpayClient.orders.fetch(
                 razorpay_order_id
             );
 
@@ -234,7 +241,7 @@ const paymentController = {
 
             // 5. Fetch actual payment details from Razorpay
             const razorpayPayment =
-                await razorpay.payments.fetch(
+                await razorpayClient.payments.fetch(
                     razorpay_payment_id
                 );
 
