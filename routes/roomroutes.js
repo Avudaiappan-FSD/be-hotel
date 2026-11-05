@@ -8,7 +8,7 @@ roomRouter.post('/rooms', auth.checkAuth, auth.allowroles(['admin']), roomContro
 roomRouter.get('/rooms', auth.checkAuth, auth.allowroles(['admin', 'customer','receptionist']), roomController.getallrooms);
 roomRouter.get('/rooms/available', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.available);
 roomRouter.post('/search', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.searchrooms);
-roomRouter.get('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.getroombyid);
+roomRouter.get('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'customer', 'receptionist']), roomController.getroombyid);
 roomRouter.put('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.updateroom);
 roomRouter.delete('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.deleteroom);
 roomRouter.get('/rooms/location/:location', auth.checkAuth, auth.allowroles(['customer','admin','receptionist']), roomController.getroombylocation);
