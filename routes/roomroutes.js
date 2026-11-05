@@ -1,16 +1,16 @@
 const express = require('express');
 const roomRouter = express.Router();
-const roomController = require('../controllers/roomcontroller');    
+const roomController = require('../controllers/roomcontroller');
 const auth = require('../middlewares/auth');
 
 
 roomRouter.post('/rooms', auth.checkAuth, auth.allowroles(['admin']), roomController.createroom);
-roomRouter.get('/rooms', auth.checkAuth, auth.allowroles(['admin', 'customer','receptionist']), roomController.getallrooms);
-roomRouter.get('/rooms/available', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.available);
-roomRouter.post('/search', auth.checkAuth, auth.allowroles(['admin', 'customer']), roomController.searchrooms);
+roomRouter.get('/rooms', auth.checkAuth, auth.allowroles(['admin', 'customer', 'receptionist']), roomController.getallrooms);
+roomRouter.get('/rooms/available', auth.checkAuth, auth.allowroles(['admin', 'customer', 'receptionist']), roomController.available);
+roomRouter.post('/search', auth.checkAuth, auth.allowroles(['admin', 'customer', 'receptionist']), roomController.searchrooms);
 roomRouter.get('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'customer', 'receptionist']), roomController.getroombyid);
-roomRouter.put('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.updateroom);
-roomRouter.delete('/rooms/:id', auth.checkAuth, auth.allowroles(['admin']), roomController.deleteroom);
-roomRouter.get('/rooms/location/:location', auth.checkAuth, auth.allowroles(['customer','admin','receptionist']), roomController.getroombylocation);
+roomRouter.put('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'receptionist']), roomController.updateroom);
+roomRouter.delete('/rooms/:id', auth.checkAuth, auth.allowroles(['admin', 'receptionist']), roomController.deleteroom);
+roomRouter.get('/rooms/location/:location', auth.checkAuth, auth.allowroles(['customer', 'admin', 'receptionist']), roomController.getroombylocation);
 
 module.exports = roomRouter;
