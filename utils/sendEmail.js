@@ -1,24 +1,33 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const sendEmail = async (email, subject, text) => {
     try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.PASSWORD,
-            },
+        if (!email) {
+            throw new Error("Customer email is missing");
+        }
+
+        const { data, error } = await resend.emails.send({
+            from: process.env.EMAIL_FROM,
+            to: [email],
+            subject: subject,
+            text: text
         });
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: email,
-            subject,
-            text,
-        };
-        await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully');
+
+        if (error) {
+            console.error("Resend Error:", error);
+            throw new Error(error.message);
+        }
+
+        console.log("Email sent successfully:", data.id);
+
+        return data;
+
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error("Email sending failed:", error);
+        throw error;
     }
-}
+};
+
 module.exports = sendEmail;

@@ -144,6 +144,12 @@ const paymentController = {
 
         try {
             const razorpayClient = getRazorpay();
+            const customer = await User.findById(req.userId).select("email");
+            if(!customer || !customer.email) { 
+                return res.status(400).json({
+                    message: "Customer email is missing. Cannot send confirmation email."
+                });
+            }
 
             if (!razorpayClient) {
                 return res.status(503).json({
@@ -351,24 +357,29 @@ const paymentController = {
                 paymentmethod: "razorpay",
                 paidat: new Date()
             });
-
-            await sendEmail(
-                req.userEmail,
-                "Apple Tree Hotel - Booking Confirmation",
-                `Your booking has been confirmed successfully!
+            try {
+                await sendEmail(
+                    customer.email,
+                    "Apple Tree Hotel - Booking Confirmation",
+                    `Your booking has been confirmed successfully!
 
              Room Number: ${roomDetails.roomnumber}
              Check-in: ${checkInDate.toDateString()}
              Check-out: ${checkOutDate.toDateString()}
 
              Thank you for choosing Apple Tree Hotel.`
-            );
-            return res.status(200).json({
-                success: true,
-                message: "Payment successful and booking confirmed",
-                booking: newBooking,
-                payment: newPayment
-            });
+                );
+                return res.status(200).json({
+                    success: true,
+                    message: "Payment successful and booking confirmed",
+                    booking: newBooking,
+                    payment: newPayment
+                });
+
+            } catch (error) {
+                console.error("Booking email failed:", emailError);
+
+            }
 
         } catch (error) {
             console.error("Verify payment error:", error);
