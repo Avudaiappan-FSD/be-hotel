@@ -377,7 +377,7 @@ const paymentController = {
                 });
 
             } catch (error) {
-                console.error("Booking email failed:", emailError);
+                console.error("Booking email failed:", error);
 
             }
 
