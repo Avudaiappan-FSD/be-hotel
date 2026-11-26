@@ -5,7 +5,7 @@ const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
 const { razorpaykeyid, razorpaykeysecret } = require("../utils/config");
-
+const sendEmail = require("../utils/sendEmail");
 let razorpay = null;
 
 const getRazorpay = () => {
@@ -352,6 +352,17 @@ const paymentController = {
                 paidat: new Date()
             });
 
+            await sendEmail(
+                req.userEmail,
+                "Apple Tree Hotel - Booking Confirmation",
+                `Your booking has been confirmed successfully!
+
+             Room Number: ${roomDetails.roomnumber}
+             Check-in: ${checkInDate.toDateString()}
+             Check-out: ${checkOutDate.toDateString()}
+
+             Thank you for choosing Apple Tree Hotel.`
+            );
             return res.status(200).json({
                 success: true,
                 message: "Payment successful and booking confirmed",
