@@ -1,22 +1,26 @@
 const { Resend } = require("resend");
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+const { RESEND_API_KEY, EMAIL_FROM } = require("./config");
 
 const sendEmail = async (email, subject, text) => {
     try {
+        if (!RESEND_API_KEY) {
+            throw new Error("RESEND_API_KEY is missing");
+        }
+
         if (!email) {
             throw new Error("Customer email is missing");
         }
 
+        const resend = new Resend(RESEND_API_KEY);
+
         const { data, error } = await resend.emails.send({
-            from: process.env.EMAIL_FROM,
+            from: EMAIL_FROM,
             to: [email],
-            subject: subject,
-            text: text
+            subject,
+            text
         });
 
         if (error) {
-            console.error("Resend Error:", error);
             throw new Error(error.message);
         }
 
@@ -31,4 +35,3 @@ const sendEmail = async (email, subject, text) => {
 };
 
 module.exports = sendEmail;
-
